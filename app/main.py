@@ -19,6 +19,7 @@ from app.core.config import settings
 from app.services.agent_service import agent_stream
 from app.services.chat_service import process_chat_stream
 from app.services.vector_service import DATA_DIR, CHROMA_DIR, CONTEXT_DIR
+from app.services.github_service import get_repo_tree
 
 settings.validate()
 
@@ -96,6 +97,19 @@ async def read_root():
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
+@app.get("/repo-tree")
+async def get_repo_tree_endpoint(url: str):
+    """获取 GitHub 仓库的目录树结构"""
+    import asyncio
+    try:
+        # 使用 asyncio.to_thread 将同步操作转为异步
+        tree = await asyncio.to_thread(get_repo_tree, url)
+        return {"tree": tree}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"error": str(e)}
 
 # ... (/analyze 和 /chat 路由保持不变) ...
 @app.get("/analyze")

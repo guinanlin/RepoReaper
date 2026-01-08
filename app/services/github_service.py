@@ -65,6 +65,63 @@ def get_repo_structure(repo_url):
     except Exception as e:
         raise e
 
+def build_file_tree(file_list):
+    """
+    将扁平的文件列表构建成树形结构
+    返回嵌套字典结构，例如：
+    {
+        "app": {
+            "type": "directory",
+            "children": {
+                "main.py": {"type": "file"},
+                "services": {
+                    "type": "directory",
+                    "children": {
+                        "github_service.py": {"type": "file"}
+                    }
+                }
+            }
+        }
+    }
+    """
+    tree = {}
+    
+    for file_path in file_list:
+        parts = file_path.split('/')
+        current = tree
+        
+        for i, part in enumerate(parts):
+            is_file = (i == len(parts) - 1)
+            
+            if part not in current:
+                current[part] = {
+                    "type": "file" if is_file else "directory",
+                    "children": {} if not is_file else None
+                }
+            else:
+                # 如果之前是文件，但现在有子项，需要更新为目录
+                if is_file:
+                    current[part]["type"] = "file"
+                else:
+                    if current[part]["type"] == "file":
+                        current[part]["type"] = "directory"
+                    if current[part].get("children") is None:
+                        current[part]["children"] = {}
+            
+            if not is_file:
+                if current[part].get("children") is None:
+                    current[part]["children"] = {}
+                current = current[part]["children"]
+    
+    return tree
+
+def get_repo_tree(repo_url):
+    """
+    获取仓库的目录树结构（树形）
+    """
+    file_list = get_repo_structure(repo_url)
+    return build_file_tree(file_list)
+
 def get_file_content(repo_url, file_path):
     """
     下载单个文件内容。

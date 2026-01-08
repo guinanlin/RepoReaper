@@ -55,6 +55,79 @@
         .main-container { display: flex; height: calc(100vh - 44px); width: 100%; }
         .left-panel { width: 50%; min-width: 320px; background: var(--panel-bg); display: flex; flex-direction: column; border-right: 1px solid var(--border-color); }
         .right-panel { flex: 1; min-width: 320px; background: var(--bg-color); display: flex; flex-direction: column; }
+        
+        /* 目录树样式 */
+        .file-tree-container {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            background: #f8fafc;
+            max-height: 300px;
+            overflow-y: auto;
+            flex-shrink: 0;
+            display: none !important; /* 默认隐藏，分析时显示 */
+        }
+        
+        .file-tree-container.visible {
+            display: block !important;
+        }
+        
+        .file-tree-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .file-tree {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 13px;
+            line-height: 1.8;
+            color: var(--text-primary);
+        }
+        
+        .file-tree-item {
+            padding: 2px 4px;
+            cursor: pointer;
+            user-select: none;
+            border-radius: 4px;
+            transition: background 0.15s;
+        }
+        
+        .file-tree-item:hover {
+            background: rgba(37, 99, 235, 0.08);
+        }
+        
+        .file-tree-item.directory {
+            font-weight: 500;
+            color: var(--primary-color);
+        }
+        
+        .file-tree-item.file {
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+        
+        .file-tree-children {
+            margin-left: 20px;
+            display: none;
+            border-left: 1px solid #e2e8f0;
+            padding-left: 8px;
+            margin-top: 2px;
+        }
+        
+        .file-tree-item.expanded > .file-tree-children {
+            display: block;
+        }
+        
+        .file-tree-icon {
+            display: inline-block;
+            width: 18px;
+            margin-right: 6px;
+            text-align: center;
+            font-size: 14px;
+        }
 
         /* 拖拽条 */
         .resizer { width: 10px; background: #f1f5f9; cursor: col-resize; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-left: 1px solid var(--border-color); border-right: 1px solid var(--border-color); transition: background 0.2s; }
@@ -378,6 +451,11 @@
             </form>
         </div>
         
+        <div class="file-tree-container" id="fileTreeContainer">
+            <div class="file-tree-title">📂 Repository Structure</div>
+            <div class="file-tree" id="fileTree"></div>
+        </div>
+        
         <div class="panel-content">
             <div class="logs-area" id="logs">
                 <div>[System] Ready to enter...</div>
@@ -578,6 +656,114 @@
         }
     }
 
+    // 渲染目录树
+    function renderFileTree(tree, container, level = 0) {
+        if (!tree || typeof tree !== 'object') {
+            console.warn('Invalid tree data:', tree);
+            return;
+        }
+        
+        const sortedKeys = Object.keys(tree).sort((a, b) => {
+            const aIsDir = tree[a] && tree[a].type === 'directory';
+            const bIsDir = tree[b] && tree[b].type === 'directory';
+            if (aIsDir && !bIsDir) return -1;
+            if (!aIsDir && bIsDir) return 1;
+            return a.localeCompare(b);
+        });
+        
+        for (const key of sortedKeys) {
+            const item = tree[key];
+            if (!item || !item.type) {
+                console.warn('Invalid item:', key, item);
+                continue;
+            }
+            
+            const isDirectory = item.type === 'directory';
+            
+            const itemDiv = document.createElement('div');
+            itemDiv.className = `file-tree-item ${isDirectory ? 'directory' : 'file'}`;
+            if (isDirectory) {
+                itemDiv.classList.add('expanded'); // 默认展开
+            }
+            
+            const icon = document.createElement('span');
+            icon.className = 'file-tree-icon';
+            icon.textContent = isDirectory ? '📂' : '📄';
+            
+            const name = document.createElement('span');
+            name.textContent = key;
+            
+            itemDiv.appendChild(icon);
+            itemDiv.appendChild(name);
+            
+            if (isDirectory && item.children && Object.keys(item.children).length > 0) {
+                const childrenDiv = document.createElement('div');
+                childrenDiv.className = 'file-tree-children';
+                renderFileTree(item.children, childrenDiv, level + 1);
+                itemDiv.appendChild(childrenDiv);
+                
+                // 点击切换展开/折叠
+                itemDiv.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    itemDiv.classList.toggle('expanded');
+                    icon.textContent = itemDiv.classList.contains('expanded') ? '📂' : '📁';
+                });
+            }
+            
+            container.appendChild(itemDiv);
+        }
+    }
+    
+    // 获取并显示目录树
+    async function loadFileTree(url) {
+        const treeContainer = document.getElementById('fileTreeContainer');
+        const treeDiv = document.getElementById('fileTree');
+        
+        if (!treeContainer || !treeDiv) {
+            console.error('File tree container elements not found');
+            return;
+        }
+        
+        // 显示加载状态
+        treeDiv.innerHTML = '<div style="color: var(--text-secondary); font-size: 12px;">⏳ 加载目录树...</div>';
+        treeContainer.classList.add('visible');
+        console.log('Loading file tree for URL:', url);
+        
+        try {
+            const apiUrl = `${API_BASE}/repo-tree?url=${encodeURIComponent(url)}`;
+            console.log('Fetching from:', apiUrl);
+            const response = await fetch(apiUrl);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP ${response.status}: ${response.statusText}. ${errorText}`);
+            }
+            
+            const data = await response.json();
+            console.log('File tree response:', data);
+            
+            if (data.error) {
+                console.error('Failed to load file tree:', data.error);
+                treeDiv.innerHTML = `<div style="color: #b91c1c; font-size: 12px;">❌ 加载失败: ${data.error}</div>`;
+                return;
+            }
+            
+            if (!data.tree || Object.keys(data.tree).length === 0) {
+                console.warn('Empty tree received');
+                treeDiv.innerHTML = '<div style="color: var(--text-secondary); font-size: 12px;">📭 目录为空</div>';
+                return;
+            }
+            
+            console.log('Rendering tree with', Object.keys(data.tree).length, 'root items');
+            treeDiv.innerHTML = '';
+            renderFileTree(data.tree, treeDiv);
+            console.log('File tree rendered successfully');
+        } catch (error) {
+            console.error('Error loading file tree:', error);
+            treeDiv.innerHTML = `<div style="color: #b91c1c; font-size: 12px;">❌ 错误: ${error.message}</div>`;
+        }
+    }
+
     // 业务逻辑
     function startAnalysis() {
         const url = document.getElementById('repoUrl').value.trim();
@@ -595,6 +781,9 @@
         logDiv.innerHTML = `<div>[System] 🚀 Initialize Agent (Session: ${SESSION_ID.substr(-6)}, Lang: ${lang.toUpperCase()})...</div>`;
         reportDiv.innerHTML = "<div style='color:#94a3b8; text-align:center; margin-top:40px'>⏳ Analyzing the code architecture in depth...</div>";
         fullReportMarkdown = "";
+        
+        // 加载目录树
+        loadFileTree(url);
         
         btnAnalyze.disabled = true;
         btnAnalyze.textContent = "Analyzing...";
