@@ -26,8 +26,9 @@ RUN apt-get update && apt-get install -y \
 RUN pip install --no-cache-dir uv
 
 # 6. 复制项目配置文件（利用 Docker 缓存层优化）
-# 先只复制 pyproject.toml 和 .python-version，这样如果代码变了但依赖没变，Docker 会利用缓存
-COPY pyproject.toml .python-version ./
+# 先只复制 pyproject.toml、.python-version 和 README.md，这样如果代码变了但依赖没变，Docker 会利用缓存
+# 注意：README.md 需要在这里复制，因为 pyproject.toml 中引用了它
+COPY pyproject.toml .python-version README.md ./
 
 # 7. 使用 UV 安装依赖
 # UV 会自动从 pyproject.toml 读取依赖并安装，速度比 pip 快很多

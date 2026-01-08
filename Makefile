@@ -68,24 +68,24 @@ stop: ## 停止运行中的服务
 # Docker 命令
 docker-build: ## 构建 Docker 镜像
 	@echo "🐳 构建 Docker 镜像..."
-	docker-compose build
+	docker compose build
 
 docker-up: ## 启动 Docker 容器
 	@echo "🐳 启动 Docker 容器..."
-	docker-compose up -d
+	docker compose up -d
 	@echo "✅ 服务已启动，访问: http://localhost:7000"
 
 docker-down: ## 停止 Docker 容器
 	@echo "🐳 停止 Docker 容器..."
-	docker-compose down
+	docker compose down
 
 docker-logs: ## 查看 Docker 日志
 	@echo "📋 查看 Docker 日志..."
-	docker-compose logs -f
+	docker compose logs -f
 
 docker-restart: ## 重启 Docker 容器
 	@echo "🔄 重启 Docker 容器..."
-	docker-compose restart
+	docker compose restart
 
 # 代码质量
 format: ## 格式化代码
