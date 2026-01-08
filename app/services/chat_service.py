@@ -3,7 +3,7 @@ import json
 import asyncio
 import re
 from app.core.config import settings
-from app.utils.llm_client import client
+from app.utils.llm_client import client, create_llm_client
 from app.services.vector_service import store_manager
 from app.services.github_service import get_file_content
 from app.services.chunking_service import UniversalChunker
@@ -19,7 +19,7 @@ def is_chinese_query(text: str) -> bool:
     return False
 
 # === 优化 2：查询重写 (解决中英文检索不匹配问题) ===
-async def _rewrite_query(user_query: str):
+async def _rewrite_query(user_query: str, llm_client_wrapper):
     """
     使用 LLM 将用户的自然语言（可能是中文）转换为 3-5 个代码搜索关键词（英文）。
     """
@@ -37,8 +37,8 @@ async def _rewrite_query(user_query: str):
     Example Output: ["authentication", "login_handler", "jwt_verify"]
     """
     try:
-        response = await client.chat.completions.create(
-            model=settings.MODEL_NAME,
+        response = await llm_client_wrapper.chat_completions_create(
+            model=None,  # 使用 wrapper 的默认模型
             messages=[{"role": "user", "content": prompt}],
             temperature=0.1,
             max_tokens=100
@@ -54,8 +54,33 @@ async def _rewrite_query(user_query: str):
         print(f"⚠️ Query Rewrite Failed: {e}")
         return user_query # 降级：直接用原句
 
-async def process_chat_stream(user_query: str, session_id: str):
+async def process_chat_stream(user_query: str, session_id: str, model_provider: str = "groq"):
+    """
+    处理聊天流
+    
+    Args:
+        user_query: 用户查询
+        session_id: 会话 ID
+        model_provider: 模型提供商，"groq" 或 "deepseek"，默认为 "groq"
+    """
     vector_db = store_manager.get_store(session_id)
+    
+    # === 动态创建 LLM 客户端 ===
+    try:
+        # 根据 provider 确定模型名称
+        if model_provider.lower() == "groq":
+            model_name = "groq/compound"
+        elif model_provider.lower() == "deepseek":
+            model_name = "deepseek-chat"
+        else:
+            # 默认使用 groq
+            model_provider = "groq"
+            model_name = "groq/compound"
+        
+        llm_client_wrapper = create_llm_client(model_provider, model_name)
+    except Exception as e:
+        yield f"❌ 模型初始化失败: {str(e)}\n"
+        return
     
     # === 1. 语言环境检测 ===
     use_chinese = is_chinese_query(user_query)
@@ -71,7 +96,7 @@ async def process_chat_stream(user_query: str, session_id: str):
 
     # === 步骤 0: 查询重写 (增强检索命中率) ===
     # 比如用户问 "鉴权在哪里？" -> rewrite -> "auth login verify"
-    search_query = await _rewrite_query(user_query)
+    search_query = await _rewrite_query(user_query, llm_client_wrapper)
     # 可以在这里 yield 一个 debug 信息给前端，如果不想要可以注释掉
     yield f"{ui_msgs['thinking']}`{search_query}`...\n\n"
     

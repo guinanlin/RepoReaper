@@ -212,14 +212,23 @@ async def agent_stream(repo_url: str, session_id: str, language: str = "en"):
                  yield json.dumps({"step": "error", "message": "❌ LLM Client Not Initialized."})
                  return
             
-            response = await client.chat.completions.create(
-                model=settings.MODEL_NAME,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_content}
-                ],
-                temperature=0.1 
-            )
+            try:
+                response = await client.chat.completions.create(
+                    model=settings.MODEL_NAME,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_content}
+                    ],
+                    temperature=0.1 
+                )
+            except Exception as api_error:
+                error_msg = str(api_error)
+                # 提供更友好的错误信息
+                if "401" in error_msg or "Authentication" in error_msg or "invalid" in error_msg.lower():
+                    yield json.dumps({"step": "error", "message": f"❌ API 认证失败: 请检查 DEEPSEEK_API_KEY 是否正确。错误详情: {error_msg[:200]}"})
+                else:
+                    yield json.dumps({"step": "error", "message": f"❌ API 调用失败: {error_msg[:200]}"})
+                return
             
             raw_content = response.choices[0].message.content
             target_files = extract_json_from_text(raw_content) # 确保 import 了这个辅助函数

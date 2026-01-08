@@ -13,11 +13,30 @@ class Settings:
     SILICON_API_KEY = os.getenv("SILICON_API_KEY")
     
     # --- DeepSeek 配置 ---
-    DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
-    DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+    DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "").strip() if os.getenv("DEEPSEEK_API_KEY") else None
+    DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com").strip()
     
-    # 模型名称
+    # --- Groq 配置 ---
+    GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip() if os.getenv("GROQ_API_KEY") else None
+    
+    # Groq Compound 模型的自定义配置 (JSON 字符串，会被解析为字典)
+    GROQ_COMPOUND_CUSTOM = os.getenv("GROQ_COMPOUND_CUSTOM")
+    
+    # 模型名称 (支持 deepseek-chat 或 groq/compound 等)
     MODEL_NAME = os.getenv("MODEL_NAME", "deepseek-chat")
+    
+    # LLM 提供商类型 (deepseek 或 groq)
+    LLM_PROVIDER = os.getenv("LLM_PROVIDER", "deepseek")
+    
+    def get_groq_compound_custom(self):
+        """解析 GROQ_COMPOUND_CUSTOM 环境变量为字典"""
+        if not self.GROQ_COMPOUND_CUSTOM:
+            return None
+        try:
+            import json
+            return json.loads(self.GROQ_COMPOUND_CUSTOM)
+        except:
+            return None
     
     # --- 服务配置 ---
     HOST = os.getenv("HOST", "127.0.0.1")
@@ -27,9 +46,14 @@ class Settings:
         """启动时检查必要的 Key 是否存在"""
         missing_keys = []
 
-        # 1. 检查 DeepSeek Key (LLM 必需)
-        if not self.DEEPSEEK_API_KEY:
-            missing_keys.append("DEEPSEEK_API_KEY")
+        # 1. 检查 LLM Provider Key (DeepSeek 或 Groq)
+        if self.LLM_PROVIDER.lower() == "groq":
+            if not self.GROQ_API_KEY:
+                missing_keys.append("GROQ_API_KEY")
+        else:
+            # 默认使用 DeepSeek
+            if not self.DEEPSEEK_API_KEY:
+                missing_keys.append("DEEPSEEK_API_KEY")
 
         # 2. 检查 SiliconCloud Key (Embedding 必需)
         # 如果你现在的代码强制依赖它，这里最好报错
