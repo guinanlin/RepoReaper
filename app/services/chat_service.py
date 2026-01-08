@@ -147,7 +147,7 @@ async def process_chat_stream(user_query: str, session_id: str, model_provider: 
 
     try:
         # === Phase 1: 思考与回答 ===
-        stream = await dynamic_client.chat_completions_create(
+        stream = await llm_client_wrapper.chat_completions_create(
             messages=messages,
             stream=True,
             temperature=0.1, 
@@ -216,7 +216,7 @@ async def process_chat_stream(user_query: str, session_id: str, model_provider: 
                     {"role": "user", "content": f"System Notification: Requested files loaded.\n\n[New Code Context]\n{supplementary_context}\n\nPlease provide the FINAL answer."}
                 ]
                 
-                stream_final = await dynamic_client.chat_completions_create(
+                stream_final = await llm_client_wrapper.chat_completions_create(
                     messages=final_messages,
                     stream=True,
                     temperature=0.2

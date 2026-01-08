@@ -42,17 +42,17 @@
 
         /* 顶部导航 */
         .header {
-            height: 60px;
+            height: 44px;
             background: var(--panel-bg);
             border-bottom: 1px solid var(--border-color);
             display: flex; align-items: center; justify-content: space-between;
-            padding: 0 24px; flex-shrink: 0;
+            padding: 0 20px; flex-shrink: 0;
         }
-        .header h1 { margin: 0; font-size: 1.25rem; font-weight: 600; display: flex; align-items: center; gap: 12px; color: var(--text-primary); }
-        .badge { background: var(--primary-color); color: white; font-size: 0.8rem; padding: 4px 10px; border-radius: 20px; font-weight: 500; }
+        .header h1 { margin: 0; font-size: 1rem; font-weight: 600; display: flex; align-items: center; gap: 8px; color: var(--text-primary); }
+        .badge { background: var(--primary-color); color: white; font-size: 0.7rem; padding: 3px 8px; border-radius: 12px; font-weight: 500; }
 
         /* 主布局 */
-        .main-container { display: flex; height: calc(100vh - 60px); width: 100%; }
+        .main-container { display: flex; height: calc(100vh - 44px); width: 100%; }
         .left-panel { width: 50%; min-width: 320px; background: var(--panel-bg); display: flex; flex-direction: column; border-right: 1px solid var(--border-color); }
         .right-panel { flex: 1; min-width: 320px; background: var(--bg-color); display: flex; flex-direction: column; }
 
@@ -72,7 +72,15 @@
             gap: 12px; 
             align-items: center; /* 垂直居中对齐 */
         }
-        .chat-input-bar { padding: 20px; border-top: 1px solid var(--border-color); background: #ffffff; display: flex; gap: 12px; align-items: center; position: relative; }
+        .chat-input-bar { 
+            padding: 12px 20px 50px 20px; /* 底部留出空间给 select 框 */
+            border-top: 1px solid var(--border-color); 
+            background: #ffffff; 
+            display: flex; 
+            gap: 12px; 
+            align-items: flex-start; /* 顶部对齐 */
+            position: relative; 
+        }
 
         input[type="text"] {
             flex: 1; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 8px; outline: none; font-size: 16px; transition: all 0.2s;
@@ -124,40 +132,62 @@
         }
         /* ==================================== */
 
-        /* === [新增] 模型选择器样式 === */
+        /* === [新增] 模型选择器样式 - 精美设计 === */
         .model-selector {
             position: absolute;
-            bottom: 8px;
-            left: 8px;
-            font-size: 12px;
-            padding: 4px 8px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            background: #f8fafc;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: all 0.2s;
+            bottom: 12px;
+            left: 20px;
+            font-size: 11px;
             z-index: 10;
         }
-        .model-selector:hover {
-            background: #f1f5f9;
-            border-color: var(--primary-color);
-        }
-        .model-selector:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+        
         .model-selector select {
-            border: none;
-            background: transparent;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 1.5px solid var(--border-color);
+            border-radius: 8px;
             color: var(--text-primary);
-            font-size: 12px;
-            padding: 2px 4px;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 6px 28px 6px 10px;
             cursor: pointer;
             outline: none;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            background-size: 12px;
+            min-width: 80px;
         }
-        .model-selector:disabled select {
+        
+        .model-selector select:hover:not(:disabled) {
+            background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+            border-color: var(--primary-color);
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1);
+            transform: translateY(-1px);
+        }
+        
+        .model-selector select:focus:not(:disabled) {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+            background: #ffffff;
+        }
+        
+        .model-selector select:disabled {
+            opacity: 0.5;
             cursor: not-allowed;
+            background: #f1f5f9;
+            border-color: #e2e8f0;
+        }
+        
+        .model-selector select option {
+            background: #ffffff;
+            color: var(--text-primary);
+            padding: 8px;
+            font-size: 12px;
         }
         /* ==================================== */
 
@@ -324,7 +354,7 @@
 
 <div class="header">
     <h1><span>🧠</span> GitHub RAG Agent <span class="badge">v5.2 Multi-Lang</span></h1>
-    <div style="font-size: 14px; color: var(--text-secondary);">Session: <span id="sessionIdDisplay">...</span></div>
+    <div style="font-size: 12px; color: var(--text-secondary);">Session: <span id="sessionIdDisplay">...</span></div>
 </div>
 
 <div class="main-container" id="mainContainer">

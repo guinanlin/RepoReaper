@@ -115,7 +115,7 @@ async def chat(request: Request):
     if not session_id: return {"answer": "Session 丢失"}
 
     return StreamingResponse(
-        process_chat_stream(user_query, session_id, model), 
+        process_chat_stream(user_query, session_id, model_provider=model), 
         media_type="text/plain"
     )
 
