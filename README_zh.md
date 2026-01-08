@@ -97,7 +97,7 @@ Chat Service 实现了一套完整的推理闭环：
 
 ## 🛠 技术栈
 
-* **核心框架:** Python 3.10+, FastAPI, AsyncIO (高并发 I/O)
+* **核心框架:** Python 3.10+, FastAPI, AsyncIO (高并发 I/O), UV (包管理)
 * **大模型基座:** OpenAI SDK (完美适配 DeepSeek-V3 / SiliconFlow)
 * **向量存储:** ChromaDB (本地持久化)
 * **代码解析:** Python `ast` 标准库
@@ -116,7 +116,8 @@ Chat Service 实现了一套完整的推理闭环：
 ## 🏁 快速开始
 
 **前置要求:**
-* Python 3.9+
+* Python 3.10+
+* [UV](https://github.com/astral-sh/uv) 包管理器（推荐）或 pip
 * 有效的 GitHub Token
 * 大模型 API Key（推荐使用 DeepSeek-V3 + SiliconFlow 免费版 bge-m3）。
 
@@ -127,6 +128,20 @@ Chat Service 实现了一套完整的推理闭环：
     ```
 
 2.  **安装依赖**
+    
+    **方式 A：使用 UV（推荐）⚡**
+    UV 是一个快速的 Python 包管理器。首先安装 UV：
+    ```bash
+    # 安装 UV（一行命令）
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    # 或使用 pip: pip install uv
+    
+    # 使用 UV 安装依赖
+    uv pip install .
+    # 或使用虚拟环境同步: uv sync
+    ```
+    
+    **方式 B：使用 pip（传统方式）**
     建议使用虚拟环境以避免依赖冲突：
     ```bash
     # 创建并激活虚拟环境
@@ -157,29 +172,65 @@ Chat Service 实现了一套完整的推理闭环：
 
 4. **启动服务**
 
-   **方式 A：本地运行 (通用推荐)**
+   **方式 A：使用 Makefile（推荐）🎯**
+   最简单的启动方式：
+   ```bash
+   # 查看所有可用命令
+   make help
+   
+   # 启动服务（默认端口 8000）
+   make run
+   
+   # 启动开发服务器（自动重载）
+   make run-dev
+   
+   # 指定端口启动
+   PORT=8001 make run
+   ```
+
+   **方式 B：使用 UV（直接运行）**
+   直接使用 UV 运行：
+   ```bash
+   # 启动服务
+   env PORT=8000 uv run python -m app.main
+   
+   # 或指定端口
+   env PORT=8001 uv run python -m app.main
+   
+   # 开发模式（自动重载）
+   env PORT=8000 uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+   ```
+
+   **方式 C：本地运行 (传统方式)**
    完美兼容 Windows/macOS/Linux，适用于开发调试：    
 
    ```bash
+   # 先激活虚拟环境（如果使用 uv sync）
+   source .venv/bin/activate  # Linux/macOS
+   # 或
+   .venv\Scripts\activate     # Windows
+   
+   # 然后运行
    python -m app.main
    ```
 
     *(注: Linux 生产环境部署仍可使用 `gunicorn -c gunicorn_conf.py app.main:app`)*
 
-   **方式 B：Docker Compose (推荐) 🐳**
+   **方式 D：Docker Compose (推荐) 🐳**
    无需配置本地 Python 环境，一键启动：
    ```bash
-   # 启动服务（自动构建镜像）
+   # 使用 Makefile
+   make docker-up      # 启动服务
+   make docker-logs    # 查看日志
+   make docker-down    # 停止服务
+   
+   # 或直接使用 docker-compose
    docker-compose up -d
-   
-   # 查看日志
    docker-compose logs -f
-   
-   # 停止服务
    docker-compose down
    ```
    
-   **方式 C：Docker 手动构建**
+   **方式 E：Docker 手动构建**
    如果不想使用 Docker Compose：
    ```bash
    # 1. 构建镜像

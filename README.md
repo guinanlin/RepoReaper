@@ -126,7 +126,8 @@ The architecture is completely language-agnostic but optimized for dual-language
 4.  ## 🏁 Quick Start
     
     **Prerequisites:**
-    * Python 3.9+
+    * Python 3.10+
+    * [UV](https://github.com/astral-sh/uv) package manager (recommended) or pip
     * Valid GitHub Token
     * LLM API Keys (DeepSeek-V3 & SiliconFlow bge-m3 recommended).
     
@@ -137,7 +138,20 @@ The architecture is completely language-agnostic but optimized for dual-language
         ```
     
     2.  **Install Dependencies**
-        Using a virtual environment is recommended:
+        
+        **Option A: Using UV (Recommended) ⚡**
+        UV is a fast Python package manager. Install it first:
+        ```bash
+        # Install UV (one-liner)
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        # Or using pip: pip install uv
+        
+        # Install dependencies using UV
+        uv pip install .
+        # Or sync with virtual environment: uv sync
+        ```
+        
+        **Option B: Using pip (Traditional)**
         ```bash
         # Create and activate venv
         python -m venv venv
@@ -167,30 +181,66 @@ The architecture is completely language-agnostic but optimized for dual-language
     
     4. **Start the Service**
     
-       **Option A: Local Run (Universal)**
+       **Option A: Using Makefile (Recommended) 🎯**
+       The easiest way to start the service:
+       ```bash
+       # Show all available commands
+       make help
+       
+       # Start the service (default port 8000)
+       make run
+       
+       # Start development server with auto-reload
+       make run-dev
+       
+       # Start on custom port
+       PORT=8001 make run
+       ```
+       
+       **Option B: Using UV (Direct)**
+       Run directly with UV:
+       ```bash
+       # Start service
+       env PORT=8000 uv run python -m app.main
+       
+       # Or with custom port
+       env PORT=8001 uv run python -m app.main
+       
+       # Development mode with auto-reload
+       env PORT=8000 uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+       ```
+       
+       **Option C: Local Run (Traditional)**
        Compatible with Windows, macOS, and Linux. Recommended for development:        
     
        ```bash
+       # Activate virtual environment first (if using uv sync)
+       source .venv/bin/activate  # Linux/macOS
+       # or
+       .venv\Scripts\activate     # Windows
+       
+       # Then run
        python -m app.main
        ```
-    
+       
         *(Note: Linux users can still use `gunicorn -c gunicorn_conf.py app.main:app` for production deployment)*
     
-       **Option B: Docker Compose (Recommended) 🐳**
+       **Option D: Docker Compose (Recommended) 🐳**
        One-click startup with Docker Compose:
     
        ```bash
-       # Start service (automatically builds image)
+       # Using Makefile
+       make docker-up      # Start service
+       make docker-logs    # View logs
+       make docker-down    # Stop service
+       
+       # Or using docker-compose directly
        docker-compose up -d
-       
-       # View logs
        docker-compose logs -f
-       
-       # Stop service
        docker-compose down
        ```
        
-       **Option C: Docker Manual Build**
+       **Option E: Docker Manual Build**
        If you don't want to use Docker Compose:
     
        ```bash
