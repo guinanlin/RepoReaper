@@ -5,12 +5,13 @@ import os
 from typing import Optional, AsyncIterator, Dict, Any
 
 # 根据配置选择 LLM Provider
-llm_provider = getattr(settings, "LLM_PROVIDER", "deepseek").lower()
+llm_provider = getattr(settings, "LLM_PROVIDER", "kimi").lower()
 print(f"🔧 LLM Provider 配置: {llm_provider.upper()}")
 
 # 初始化客户端
 client = None
 groq_client = None
+kimi_client = None
 
 if llm_provider == "groq":
     # 使用 Groq
@@ -42,6 +43,43 @@ if llm_provider == "groq":
         print("❌ 未安装 groq 包，请运行: pip install groq")
     except Exception as e:
         print(f"❌ Groq Client 初始化失败: {e}")
+        import traceback
+        traceback.print_exc()
+elif llm_provider == "kimi":
+    # 使用 Kimi (GitCode, 兼容 OpenAI SDK)
+    try:
+        api_key = getattr(settings, "GITCODE_API_KEY", os.getenv("GITCODE_API_KEY"))
+        base_url = getattr(settings, "GITCODE_BASE_URL", "https://api-ai.gitcode.com/v1")
+        
+        if api_key:
+            # 清理 API key：去除前后空格和换行符
+            api_key = api_key.strip()
+            # 移除可能的引号
+            if api_key.startswith('"') and api_key.endswith('"'):
+                api_key = api_key[1:-1]
+            if api_key.startswith("'") and api_key.endswith("'"):
+                api_key = api_key[1:-1]
+            api_key = api_key.strip()
+        
+        if base_url:
+            base_url = base_url.strip()
+        
+        if api_key:
+            # 调试信息：显示 API key 预览
+            key_preview = f"{api_key[:8]}...{api_key[-4:]}" if len(api_key) > 12 else "***"
+            print(f"🔑 GitCode (Kimi) API Key 预览: {key_preview} (长度: {len(api_key)})")
+            print(f"🌐 GitCode Base URL: {base_url}")
+            print(f"📦 使用模型: {settings.GITCODE_MODEL_NAME}")
+            
+            kimi_client = AsyncOpenAI(
+                api_key=api_key,
+                base_url=base_url
+            )
+            print(f"✅ Kimi (GitCode) Client 初始化成功 (Model: {settings.GITCODE_MODEL_NAME})")
+        else:
+            print("❌ 未找到 GITCODE_API_KEY")
+    except Exception as e:
+        print(f"❌ Kimi Client 初始化失败: {e}")
         import traceback
         traceback.print_exc()
 else:
@@ -89,11 +127,14 @@ else:
 
 class LLMClientWrapper:
     """
-    统一的 LLM 客户端包装器，支持 DeepSeek 和 Groq
+    统一的 LLM 客户端包装器，支持 DeepSeek、Groq 和 Kimi
     """
     def __init__(self):
         self.provider = llm_provider
-        self.model_name = settings.MODEL_NAME
+        if llm_provider == "kimi":
+            self.model_name = settings.GITCODE_MODEL_NAME
+        else:
+            self.model_name = settings.MODEL_NAME
         
     async def chat_completions_create(
         self,
@@ -163,6 +204,37 @@ class LLMClientWrapper:
             
             # 调用 Groq API
             return await groq_client.chat.completions.create(**groq_params)
+        elif self.provider == "kimi":
+            # 使用 Kimi (GitCode, OpenAI 兼容)
+            if not kimi_client:
+                raise ValueError("Kimi 客户端未初始化")
+            
+            # 使用指定的模型或默认模型
+            model = model or self.model_name
+            
+            # 准备 OpenAI 兼容参数
+            openai_params = {
+                "model": model,
+                "messages": messages or [],
+                "temperature": temperature,
+                "top_p": top_p,
+                "stream": stream,
+            }
+            
+            if max_tokens is not None:
+                openai_params["max_tokens"] = max_tokens
+            
+            if stop is not None:
+                openai_params["stop"] = stop
+            
+            if timeout is not None:
+                openai_params["timeout"] = timeout
+            
+            # 添加其他参数（包括 thinking_budget 等 Kimi 特有参数）
+            openai_params.update(kwargs)
+            
+            # 调用 OpenAI 兼容 API
+            return await kimi_client.chat.completions.create(**openai_params)
         else:
             # 使用 DeepSeek (OpenAI 兼容)
             if not client:
@@ -220,6 +292,9 @@ class CompatibleClient:
 if llm_provider == "groq":
     # 如果使用 Groq，导出包装器
     client = CompatibleClient()
+elif llm_provider == "kimi":
+    # 如果使用 Kimi，导出包装器
+    client = CompatibleClient()
 else:
     # 如果使用 DeepSeek，保持原有的 client 对象
     pass  # client 已经在上面初始化了
@@ -233,7 +308,7 @@ def create_llm_client(provider: str, model_name: Optional[str] = None):
     动态创建 LLM 客户端
     
     Args:
-        provider: "groq" 或 "deepseek"
+        provider: "groq"、"deepseek" 或 "kimi"
         model_name: 模型名称，如果为 None 则使用配置的默认值
     
     Returns:
@@ -244,7 +319,12 @@ def create_llm_client(provider: str, model_name: Optional[str] = None):
     from openai import AsyncOpenAI
     
     provider = provider.lower()
-    model_name = model_name or settings.MODEL_NAME
+    
+    # 根据 provider 确定默认模型名称
+    if provider == "kimi":
+        model_name = model_name or settings.GITCODE_MODEL_NAME
+    else:
+        model_name = model_name or settings.MODEL_NAME
     
     if provider == "groq":
         api_key = getattr(settings, "GROQ_API_KEY", os.getenv("GROQ_API_KEY"))
@@ -348,5 +428,54 @@ def create_llm_client(provider: str, model_name: Optional[str] = None):
         
         return DynamicDeepSeekWrapper(deepseek_client, model_name)
     
+    elif provider == "kimi":
+        api_key = getattr(settings, "GITCODE_API_KEY", os.getenv("GITCODE_API_KEY"))
+        base_url = getattr(settings, "GITCODE_BASE_URL", "https://api-ai.gitcode.com/v1")
+        
+        if not api_key:
+            raise ValueError("GITCODE_API_KEY 未配置")
+        
+        # 清理 API key
+        api_key = api_key.strip()
+        if api_key.startswith('"') and api_key.endswith('"'):
+            api_key = api_key[1:-1]
+        if api_key.startswith("'") and api_key.endswith("'"):
+            api_key = api_key[1:-1]
+        api_key = api_key.strip()
+        base_url = base_url.strip()
+        
+        kimi_client_instance = AsyncOpenAI(api_key=api_key, base_url=base_url)
+        
+        class DynamicKimiWrapper:
+            def __init__(self, client_instance, model):
+                self.client = client_instance
+                self.model = model
+                self.provider = "kimi"
+            
+            async def chat_completions_create(self, model=None, messages=None, temperature=0.7,
+                                             max_tokens=None, top_p=1.0, stream=False,
+                                             stop=None, timeout=None, **kwargs):
+                model = model or self.model
+                openai_params = {
+                    "model": model,
+                    "messages": messages or [],
+                    "temperature": temperature,
+                    "top_p": top_p,
+                    "stream": stream,
+                }
+                
+                if max_tokens is not None:
+                    openai_params["max_tokens"] = max_tokens
+                if stop is not None:
+                    openai_params["stop"] = stop
+                if timeout is not None:
+                    openai_params["timeout"] = timeout
+                
+                # 添加其他参数（包括 thinking_budget 等 Kimi 特有参数）
+                openai_params.update(kwargs)
+                return await self.client.chat.completions.create(**openai_params)
+        
+        return DynamicKimiWrapper(kimi_client_instance, model_name)
+    
     else:
-        raise ValueError(f"不支持的 provider: {provider}，仅支持 'groq' 或 'deepseek'")
+        raise ValueError(f"不支持的 provider: {provider}，仅支持 'groq'、'deepseek' 或 'kimi'")

@@ -54,14 +54,14 @@ async def _rewrite_query(user_query: str, llm_client_wrapper):
         print(f"⚠️ Query Rewrite Failed: {e}")
         return user_query # 降级：直接用原句
 
-async def process_chat_stream(user_query: str, session_id: str, model_provider: str = "groq"):
+async def process_chat_stream(user_query: str, session_id: str, model_provider: str = "kimi"):
     """
     处理聊天流
     
     Args:
         user_query: 用户查询
         session_id: 会话 ID
-        model_provider: 模型提供商，"groq" 或 "deepseek"，默认为 "groq"
+        model_provider: 模型提供商，"groq"、"deepseek" 或 "kimi"，默认为 "groq"
     """
     vector_db = store_manager.get_store(session_id)
     
@@ -72,10 +72,14 @@ async def process_chat_stream(user_query: str, session_id: str, model_provider: 
             model_name = "groq/compound"
         elif model_provider.lower() == "deepseek":
             model_name = "deepseek-chat"
+        elif model_provider.lower() == "kimi":
+            from app.core.config import settings
+            model_name = settings.GITCODE_MODEL_NAME
         else:
-            # 默认使用 groq
-            model_provider = "groq"
-            model_name = "groq/compound"
+            # 默认使用 kimi
+            model_provider = "kimi"
+            from app.core.config import settings
+            model_name = settings.GITCODE_MODEL_NAME
         
         llm_client_wrapper = create_llm_client(model_provider, model_name)
     except Exception as e:

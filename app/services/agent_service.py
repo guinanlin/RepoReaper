@@ -184,7 +184,8 @@ async def agent_stream(repo_url: str, session_id: str, language: str = "en"):
         readme_file = next((f for f in file_list if f.lower().endswith("readme.md")), None)
 
         for round_idx in range(MAX_ROUNDS):
-            yield json.dumps({"step": "thinking", "message": f"🕵️ [Round {round_idx+1}/{MAX_ROUNDS}] DeepSeek is analyzing Repo Map..."})
+            provider_name = settings.LLM_PROVIDER.upper()
+            yield json.dumps({"step": "thinking", "message": f"🕵️ [Round {round_idx+1}/{MAX_ROUNDS}] {provider_name} is analyzing Repo Map..."})
             
             # ... (DeepSeek Prompt 逻辑保持不变) ...
             system_prompt = "You are a Senior Software Architect. Your goal is to understand the codebase."
@@ -224,10 +225,17 @@ async def agent_stream(repo_url: str, session_id: str, language: str = "en"):
             except Exception as api_error:
                 error_msg = str(api_error)
                 # 提供更友好的错误信息
+                provider_name = settings.LLM_PROVIDER.upper()
+                api_key_name = {
+                    "kimi": "GITCODE_API_KEY",
+                    "groq": "GROQ_API_KEY",
+                    "deepseek": "DEEPSEEK_API_KEY"
+                }.get(settings.LLM_PROVIDER.lower(), "API_KEY")
+                
                 if "401" in error_msg or "Authentication" in error_msg or "invalid" in error_msg.lower():
-                    yield json.dumps({"step": "error", "message": f"❌ API 认证失败: 请检查 DEEPSEEK_API_KEY 是否正确。错误详情: {error_msg[:200]}"})
+                    yield json.dumps({"step": "error", "message": f"❌ API 认证失败: 请检查 {api_key_name} 是否正确。错误详情: {error_msg[:200]}"})
                 else:
-                    yield json.dumps({"step": "error", "message": f"❌ API 调用失败: {error_msg[:200]}"})
+                    yield json.dumps({"step": "error", "message": f"❌ API 调用失败 ({provider_name}): {error_msg[:200]}"})
                 return
             
             raw_content = response.choices[0].message.content

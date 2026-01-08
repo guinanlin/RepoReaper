@@ -153,8 +153,13 @@ The architecture is completely language-agnostic but optimized for dual-language
         # GitHub Personal Access Token
         GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxx
         
-        # LLM API Key (e.g., DeepSeek)
-        DEEPSEEK_API_KEY=sk-xxxxxxxxxxxxxxx
+        # LLM Provider Configuration (default: Kimi)
+        LLM_PROVIDER=kimi
+        GITCODE_API_KEY=your_gitcode_api_key
+        
+        # Optional: Other LLM Provider Configuration
+        # DEEPSEEK_API_KEY=sk-xxxxxxxxxxxxxxx
+        # GROQ_API_KEY=your_groq_api_key
         
         # Embedding API Key (SiliconFlow)
         SILICON_API_KEY=sk-xxxxxxxxxxxxxxx
@@ -171,8 +176,22 @@ The architecture is completely language-agnostic but optimized for dual-language
     
         *(Note: Linux users can still use `gunicorn -c gunicorn_conf.py app.main:app` for production deployment)*
     
-       **Option B: Docker Run 🐳**
-       Run in an isolated container:
+       **Option B: Docker Compose (Recommended) 🐳**
+       One-click startup with Docker Compose:
+    
+       ```bash
+       # Start service (automatically builds image)
+       docker-compose up -d
+       
+       # View logs
+       docker-compose logs -f
+       
+       # Stop service
+       docker-compose down
+       ```
+       
+       **Option C: Docker Manual Build**
+       If you don't want to use Docker Compose:
     
        ```bash
        # 1. Build Image

@@ -109,7 +109,7 @@ async def chat(request: Request):
     data = await request.json()
     user_query = data.get("query")
     session_id = data.get("session_id")
-    model = data.get("model", "groq")  # 默认使用 Groq
+    model = data.get("model", "kimi")  # 默认使用 Kimi
     
     if not user_query: return {"answer": "请输入问题"}
     if not session_id: return {"answer": "Session 丢失"}

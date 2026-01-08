@@ -22,11 +22,16 @@ class Settings:
     # Groq Compound 模型的自定义配置 (JSON 字符串，会被解析为字典)
     GROQ_COMPOUND_CUSTOM = os.getenv("GROQ_COMPOUND_CUSTOM")
     
-    # 模型名称 (支持 deepseek-chat 或 groq/compound 等)
-    MODEL_NAME = os.getenv("MODEL_NAME", "deepseek-chat")
+    # --- Kimi (GitCode) 配置 ---
+    GITCODE_API_KEY = os.getenv("GITCODE_API_KEY", "").strip() if os.getenv("GITCODE_API_KEY") else None
+    GITCODE_BASE_URL = os.getenv("GITCODE_BASE_URL", "https://api-ai.gitcode.com/v1").strip()
+    GITCODE_MODEL_NAME = os.getenv("GITCODE_MODEL_NAME", "moonshotai/Kimi-K2-Instruct-0905")
     
-    # LLM 提供商类型 (deepseek 或 groq)
-    LLM_PROVIDER = os.getenv("LLM_PROVIDER", "deepseek")
+    # 模型名称 (支持 deepseek-chat、groq/compound 或 moonshotai/Kimi-K2-Instruct-0905 等)
+    MODEL_NAME = os.getenv("MODEL_NAME", "moonshotai/Kimi-K2-Instruct-0905")
+    
+    # LLM 提供商类型 (deepseek、groq 或 kimi)
+    LLM_PROVIDER = os.getenv("LLM_PROVIDER", "kimi")
     
     def get_groq_compound_custom(self):
         """解析 GROQ_COMPOUND_CUSTOM 环境变量为字典"""
@@ -46,10 +51,13 @@ class Settings:
         """启动时检查必要的 Key 是否存在"""
         missing_keys = []
 
-        # 1. 检查 LLM Provider Key (DeepSeek 或 Groq)
+        # 1. 检查 LLM Provider Key (DeepSeek、Groq 或 Kimi)
         if self.LLM_PROVIDER.lower() == "groq":
             if not self.GROQ_API_KEY:
                 missing_keys.append("GROQ_API_KEY")
+        elif self.LLM_PROVIDER.lower() == "kimi":
+            if not self.GITCODE_API_KEY:
+                missing_keys.append("GITCODE_API_KEY")
         else:
             # 默认使用 DeepSeek
             if not self.DEEPSEEK_API_KEY:

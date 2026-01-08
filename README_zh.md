@@ -143,8 +143,13 @@ Chat Service 实现了一套完整的推理闭环：
     # GitHub 访问令牌 (用于读取仓库)
     GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxx
     
-    # LLM 服务商 Key (如 DeepSeek)
-    DEEPSEEK_API_KEY=sk-xxxxxxxxxxxxxxx
+    # LLM 服务商配置 (默认使用 Kimi)
+    LLM_PROVIDER=kimi
+    GITCODE_API_KEY=你的GitCode_API_Key
+    
+    # 可选：其他 LLM 服务商配置
+    # DEEPSEEK_API_KEY=sk-xxxxxxxxxxxxxxx
+    # GROQ_API_KEY=你的Groq_API_Key
     
     # Embedding 服务商 Key (SiliconFlow 提供免费 bge-m3)
     SILICON_API_KEY=sk-xxxxxxxxxxxxxxx
@@ -161,8 +166,21 @@ Chat Service 实现了一套完整的推理闭环：
 
     *(注: Linux 生产环境部署仍可使用 `gunicorn -c gunicorn_conf.py app.main:app`)*
 
-   **方式 B：Docker 容器化运行 🐳**
-   无需配置本地 Python 环境，直接一键启动：
+   **方式 B：Docker Compose (推荐) 🐳**
+   无需配置本地 Python 环境，一键启动：
+   ```bash
+   # 启动服务（自动构建镜像）
+   docker-compose up -d
+   
+   # 查看日志
+   docker-compose logs -f
+   
+   # 停止服务
+   docker-compose down
+   ```
+   
+   **方式 C：Docker 手动构建**
+   如果不想使用 Docker Compose：
    ```bash
    # 1. 构建镜像
    docker build -t reporeaper .
