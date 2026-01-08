@@ -1,4 +1,4 @@
-.PHONY: help install install-dev run run-dev stop clean docker-build docker-up docker-down docker-logs docker-restart test format lint check health
+.PHONY: help install install-dev run run-dev stop clean docker-build docker-up docker-down docker-logs docker-restart docker-rebuild test format lint check health
 
 # 默认变量
 HOST ?= 127.0.0.1
@@ -24,6 +24,7 @@ help: ## 显示帮助信息
 	@echo "  make docker-down   - 停止 Docker 容器"
 	@echo "  make docker-logs   - 查看 Docker 日志"
 	@echo "  make docker-restart - 重启 Docker 容器"
+	@echo "  make docker-rebuild - 停止 → 重新构建 → 启动（一条命令完成）"
 	@echo ""
 	@echo "代码质量:"
 	@echo "  make format        - 格式化代码（使用 black）"
@@ -86,6 +87,16 @@ docker-logs: ## 查看 Docker 日志
 docker-restart: ## 重启 Docker 容器
 	@echo "🔄 重启 Docker 容器..."
 	docker compose restart
+
+docker-rebuild: ## 停止 → 重新构建 → 启动 Docker 容器（一条命令完成）
+	@echo "🔄 开始重建 Docker 容器..."
+	@echo "📋 步骤 1/3: 停止现有容器..."
+	@docker compose down || true
+	@echo "📋 步骤 2/3: 重新构建镜像..."
+	@docker compose build
+	@echo "📋 步骤 3/3: 启动容器..."
+	@docker compose up -d
+	@echo "✅ 重建完成！服务已启动，访问: http://localhost:7000"
 
 # 代码质量
 format: ## 格式化代码
