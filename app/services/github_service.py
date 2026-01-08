@@ -94,22 +94,35 @@ def build_file_tree(file_list):
             is_file = (i == len(parts) - 1)
             
             if part not in current:
-                current[part] = {
-                    "type": "file" if is_file else "directory",
-                    "children": {} if not is_file else None
-                }
+                if is_file:
+                    # 文件节点：不包含 children 属性
+                    current[part] = {"type": "file"}
+                else:
+                    # 目录节点：包含 children 属性
+                    current[part] = {
+                        "type": "directory",
+                        "children": {}
+                    }
             else:
                 # 如果之前是文件，但现在有子项，需要更新为目录
                 if is_file:
                     current[part]["type"] = "file"
+                    # 确保文件节点没有 children 属性
+                    if "children" in current[part]:
+                        del current[part]["children"]
                 else:
-                    if current[part]["type"] == "file":
+                    # 这是一个目录
+                    if current[part].get("type") == "file":
+                        # 之前是文件，现在变成目录
                         current[part]["type"] = "directory"
-                    if current[part].get("children") is None:
+                        current[part]["children"] = {}
+                    elif "children" not in current[part]:
+                        # 确保目录有 children 属性
                         current[part]["children"] = {}
             
             if not is_file:
-                if current[part].get("children") is None:
+                # 进入下一层目录
+                if "children" not in current[part]:
                     current[part]["children"] = {}
                 current = current[part]["children"]
     

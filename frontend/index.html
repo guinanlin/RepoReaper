@@ -58,7 +58,7 @@
         
         /* 目录树样式 */
         .file-tree-container {
-            padding: 12px 16px;
+            padding: 12px 24px;
             border-bottom: 1px solid var(--border-color);
             background: #f8fafc;
             max-height: 300px;
@@ -679,16 +679,17 @@
             }
             
             const isDirectory = item.type === 'directory';
+            const hasChildren = isDirectory && item.children && typeof item.children === 'object' && Object.keys(item.children).length > 0;
             
             const itemDiv = document.createElement('div');
             itemDiv.className = `file-tree-item ${isDirectory ? 'directory' : 'file'}`;
-            if (isDirectory) {
-                itemDiv.classList.add('expanded'); // 默认展开
+            if (isDirectory && hasChildren) {
+                itemDiv.classList.add('expanded'); // 默认展开（仅当有子项时）
             }
             
             const icon = document.createElement('span');
             icon.className = 'file-tree-icon';
-            icon.textContent = isDirectory ? '📂' : '📄';
+            icon.textContent = isDirectory ? (hasChildren ? '📂' : '📁') : '📄';
             
             const name = document.createElement('span');
             name.textContent = key;
@@ -696,7 +697,7 @@
             itemDiv.appendChild(icon);
             itemDiv.appendChild(name);
             
-            if (isDirectory && item.children && Object.keys(item.children).length > 0) {
+            if (hasChildren) {
                 const childrenDiv = document.createElement('div');
                 childrenDiv.className = 'file-tree-children';
                 renderFileTree(item.children, childrenDiv, level + 1);
@@ -708,6 +709,10 @@
                     itemDiv.classList.toggle('expanded');
                     icon.textContent = itemDiv.classList.contains('expanded') ? '📂' : '📁';
                 });
+            } else if (isDirectory) {
+                // 空目录也可以点击（虽然不会展开）
+                itemDiv.style.cursor = 'default';
+                itemDiv.style.opacity = '0.7';
             }
             
             container.appendChild(itemDiv);
@@ -732,10 +737,21 @@
         try {
             const apiUrl = `${API_BASE}/repo-tree?url=${encodeURIComponent(url)}`;
             console.log('Fetching from:', apiUrl);
-            const response = await fetch(apiUrl);
+            
+            const response = await fetch(apiUrl, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                }
+            });
             
             if (!response.ok) {
-                const errorText = await response.text();
+                let errorText = '';
+                try {
+                    errorText = await response.text();
+                } catch (e) {
+                    errorText = response.statusText;
+                }
                 throw new Error(`HTTP ${response.status}: ${response.statusText}. ${errorText}`);
             }
             
@@ -748,8 +764,8 @@
                 return;
             }
             
-            if (!data.tree || Object.keys(data.tree).length === 0) {
-                console.warn('Empty tree received');
+            if (!data.tree || typeof data.tree !== 'object' || Object.keys(data.tree).length === 0) {
+                console.warn('Empty tree received:', data);
                 treeDiv.innerHTML = '<div style="color: var(--text-secondary); font-size: 12px;">📭 目录为空</div>';
                 return;
             }
@@ -760,7 +776,8 @@
             console.log('File tree rendered successfully');
         } catch (error) {
             console.error('Error loading file tree:', error);
-            treeDiv.innerHTML = `<div style="color: #b91c1c; font-size: 12px;">❌ 错误: ${error.message}</div>`;
+            const errorMsg = error.message || '未知错误';
+            treeDiv.innerHTML = `<div style="color: #b91c1c; font-size: 12px;">❌ 错误: ${errorMsg}</div>`;
         }
     }
 

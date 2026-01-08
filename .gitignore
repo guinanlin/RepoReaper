@@ -6,3 +6,10 @@ __pycache__/
 venv/
 .DS_Store
 data/
+
+# UV 相关
+.uv/
+uv.lock
+*.egg-info/
+dist/
+build/

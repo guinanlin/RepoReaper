@@ -6,7 +6,8 @@ FROM python:3.10-slim
 # PYTHONDONTWRITEBYTECODE=1: 防止 Python 生成 .pyc 缓存文件 (Docker 里不需要)
 # PYTHONUNBUFFERED=1: 保证日志直接打印到控制台，不会被缓存 (方便调试)
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    UV_SYSTEM_PYTHON=1
 
 # 3. 设置工作目录
 # 相当于在容器内部执行了 "mkdir /app" 和 "cd /app"
@@ -20,27 +21,31 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# 5. 复制依赖文件并安装
-# 技巧：先只复制 requirements.txt，这样如果代码变了但依赖没变，Docker 会利用缓存，跳过安装步骤，构建更快。
-COPY requirements.txt .
+# 5. 安装 UV 包管理器
+# UV 是一个快速的 Python 包管理器，比 pip 快很多
+RUN pip install --no-cache-dir uv
 
-# 6. 执行安装命令
-# --no-cache-dir: 不缓存安装包，减小镜像体积
-RUN pip install --no-cache-dir -r requirements.txt
+# 6. 复制项目配置文件（利用 Docker 缓存层优化）
+# 先只复制 pyproject.toml 和 .python-version，这样如果代码变了但依赖没变，Docker 会利用缓存
+COPY pyproject.toml .python-version ./
+
+# 7. 使用 UV 安装依赖
+# UV 会自动从 pyproject.toml 读取依赖并安装，速度比 pip 快很多
+RUN uv pip install --system .
 
 # [针对 ChromaDB 的特殊补丁]
 # Linux 默认的 SQLite 版本可能过低导致 Chroma 崩溃，这里强制替换为 pysqlite3
-RUN pip install pysqlite3-binary && \
+RUN uv pip install --system pysqlite3-binary && \
     echo 'import sys; import pysqlite3; sys.modules["sqlite3"] = sys.modules.pop("pysqlite3")' > /usr/local/lib/python3.10/site-packages/google_colab_workaround.py || true
 
-# 7. 复制项目所有代码到容器
+# 8. 复制项目所有代码到容器
 # 将当前目录下的所有文件（app, frontend, gunicorn_conf.py 等）复制到容器的 /app 目录
 COPY . .
 
-# 8. 暴露端口
+# 9. 暴露端口
 # 告诉 Docker 这个容器会占用 8000 端口
 EXPOSE 8000
 
-# 9. 启动命令
+# 10. 启动命令
 # 使用 Gunicorn 启动，加载 gunicorn_conf.py 配置，运行 app.main:app
 CMD ["gunicorn", "-c", "gunicorn_conf.py", "app.main:app"]
