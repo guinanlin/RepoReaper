@@ -140,10 +140,6 @@ async def process_chat_stream(user_query: str, session_id: str, model_provider: 
     (System Note: Priority 1: Answer using context. Priority 2: Use <tool_code> ONLY if critical info is missing.)
     """
     
-    if not client: 
-        yield "❌ LLM Error: Client not initialized"
-        return
-
     messages = [
         {"role": "system", "content": system_instruction},
         {"role": "user", "content": augmented_user_query}
@@ -151,8 +147,7 @@ async def process_chat_stream(user_query: str, session_id: str, model_provider: 
 
     try:
         # === Phase 1: 思考与回答 ===
-        stream = await client.chat.completions.create(
-            model=settings.MODEL_NAME,
+        stream = await dynamic_client.chat_completions_create(
             messages=messages,
             stream=True,
             temperature=0.1, 
@@ -221,8 +216,7 @@ async def process_chat_stream(user_query: str, session_id: str, model_provider: 
                     {"role": "user", "content": f"System Notification: Requested files loaded.\n\n[New Code Context]\n{supplementary_context}\n\nPlease provide the FINAL answer."}
                 ]
                 
-                stream_final = await client.chat.completions.create(
-                    model=settings.MODEL_NAME,
+                stream_final = await dynamic_client.chat_completions_create(
                     messages=final_messages,
                     stream=True,
                     temperature=0.2

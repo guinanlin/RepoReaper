@@ -109,12 +109,13 @@ async def chat(request: Request):
     data = await request.json()
     user_query = data.get("query")
     session_id = data.get("session_id")
+    model = data.get("model", "groq")  # 默认使用 Groq
     
     if not user_query: return {"answer": "请输入问题"}
     if not session_id: return {"answer": "Session 丢失"}
 
     return StreamingResponse(
-        process_chat_stream(user_query, session_id), 
+        process_chat_stream(user_query, session_id, model), 
         media_type="text/plain"
     )
 
