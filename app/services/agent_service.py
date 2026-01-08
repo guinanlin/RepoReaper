@@ -214,8 +214,10 @@ async def agent_stream(repo_url: str, session_id: str, language: str = "en"):
                  return
             
             try:
+                # 根据 LLM_PROVIDER 获取正确的模型名称
+                model_name = settings.get_model_name()
                 response = await client.chat.completions.create(
-                    model=settings.MODEL_NAME,
+                    model=model_name,
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_content}
@@ -415,8 +417,10 @@ async def agent_stream(repo_url: str, session_id: str, language: str = "en"):
             """
         
         # === FIX: 增加 timeout 防止长文本生成时断连 ===
+        # 根据 LLM_PROVIDER 获取正确的模型名称
+        model_name = settings.get_model_name()
         stream = await client.chat.completions.create(
-            model=settings.MODEL_NAME,
+            model=model_name,
             messages=[
                 {"role": "system", "content": "You are a pragmatic Tech Lead. Focus on architecture and data flow, not implementation details."},
                 {"role": "user", "content": analysis_user_content}

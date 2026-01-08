@@ -28,6 +28,7 @@ class Settings:
     GITCODE_MODEL_NAME = os.getenv("GITCODE_MODEL_NAME", "moonshotai/Kimi-K2-Instruct-0905")
     
     # 模型名称 (支持 deepseek-chat、groq/compound 或 moonshotai/Kimi-K2-Instruct-0905 等)
+    # 注意：此默认值已改为 Kimi 模型，但实际使用的模型应根据 LLM_PROVIDER 通过 get_model_name() 方法获取
     MODEL_NAME = os.getenv("MODEL_NAME", "moonshotai/Kimi-K2-Instruct-0905")
     
     # LLM 提供商类型 (deepseek、groq 或 kimi)
@@ -42,6 +43,32 @@ class Settings:
             return json.loads(self.GROQ_COMPOUND_CUSTOM)
         except:
             return None
+    
+    def get_model_name(self):
+        """
+        根据 LLM_PROVIDER 获取正确的模型名称
+        如果用户自定义了 MODEL_NAME，则优先使用自定义值
+        
+        这样可以避免当 LLM_PROVIDER 设置为 deepseek 或 groq 时，
+        错误地使用 Kimi 模型名称导致认证和模型不匹配错误。
+        """
+        provider = self.LLM_PROVIDER.lower()
+        
+        # 如果用户通过环境变量自定义了 MODEL_NAME，优先使用
+        custom_model = os.getenv("MODEL_NAME")
+        if custom_model:
+            return custom_model
+        
+        # 否则根据 provider 返回默认模型
+        if provider == "kimi":
+            return self.GITCODE_MODEL_NAME
+        elif provider == "groq":
+            return "groq/compound"
+        elif provider == "deepseek":
+            return "deepseek-chat"
+        else:
+            # 默认返回 MODEL_NAME（向后兼容）
+            return self.MODEL_NAME
     
     # --- 服务配置 ---
     HOST = os.getenv("HOST", "127.0.0.1")
