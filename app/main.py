@@ -113,9 +113,12 @@ async def get_repo_tree_endpoint(url: str):
 
 # ... (/analyze 和 /chat 路由保持不变) ...
 @app.get("/analyze")
-async def analyze(url: str, session_id: str, language: str = "en"): 
+async def analyze(url: str, session_id: str, language: str = "en", mode: str = None): 
     if not session_id:
         return {"error": "Missing session_id"}
+    # 如果提供了 mode 参数，临时设置分析模式
+    if mode and mode in ["quick", "deep", "full"]:
+        settings.ANALYSIS_MODE = mode
     return EventSourceResponse(agent_stream(url, session_id, language))
 
 @app.post("/chat")
@@ -124,12 +127,17 @@ async def chat(request: Request):
     user_query = data.get("query")
     session_id = data.get("session_id")
     model = data.get("model", "kimi")  # 默认使用 Kimi
+    deep_thinking = data.get("deep_thinking", False)  # 深度思考模式，默认关闭
+    
+    # 如果请求中指定了deep_thinking，使用请求值；否则使用环境变量配置
+    if deep_thinking is None:
+        deep_thinking = settings.DEEP_THINKING_ENABLED
     
     if not user_query: return {"answer": "请输入问题"}
     if not session_id: return {"answer": "Session 丢失"}
 
     return StreamingResponse(
-        process_chat_stream(user_query, session_id, model_provider=model), 
+        process_chat_stream(user_query, session_id, model_provider=model, deep_thinking=deep_thinking), 
         media_type="text/plain"
     )
 

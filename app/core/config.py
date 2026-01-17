@@ -73,6 +73,37 @@ class Settings:
     # --- 服务配置 ---
     HOST = os.getenv("HOST", "127.0.0.1")
     PORT = int(os.getenv("PORT", 8000))
+    
+    # --- 分析模式配置 ---
+    # "quick": 快速模式（默认，3轮，15个文件）
+    # "deep": 深度模式（10轮，50个文件）
+    # "full": 全量模式（20轮，100个文件）
+    ANALYSIS_MODE = os.getenv("ANALYSIS_MODE", "quick")
+    
+    # --- 深度思考模式配置（用于问答环节）---
+    # 如果启用深度思考，LLM 会进行更深入的分析和推理
+    DEEP_THINKING_ENABLED = os.getenv("DEEP_THINKING_ENABLED", "false").lower() == "true"
+    
+    def get_analysis_config(self):
+        """根据分析模式返回配置参数"""
+        if self.ANALYSIS_MODE == "deep":
+            return {
+                "repo_map_limit": 50,
+                "max_rounds": 10,
+                "files_per_round": "3-8"
+            }
+        elif self.ANALYSIS_MODE == "full":
+            return {
+                "repo_map_limit": 100,
+                "max_rounds": 20,
+                "files_per_round": "5-10"
+            }
+        else:  # quick (默认)
+            return {
+                "repo_map_limit": 15,
+                "max_rounds": 3,
+                "files_per_round": "1-3"
+            }
 
     def validate(self):
         """启动时检查必要的 Key 是否存在"""

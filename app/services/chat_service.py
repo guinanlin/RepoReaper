@@ -54,14 +54,15 @@ async def _rewrite_query(user_query: str, llm_client_wrapper):
         print(f"⚠️ Query Rewrite Failed: {e}")
         return user_query # 降级：直接用原句
 
-async def process_chat_stream(user_query: str, session_id: str, model_provider: str = "kimi"):
+async def process_chat_stream(user_query: str, session_id: str, model_provider: str = "kimi", deep_thinking: bool = False):
     """
     处理聊天流
     
     Args:
         user_query: 用户查询
         session_id: 会话 ID
-        model_provider: 模型提供商，"groq"、"deepseek" 或 "kimi"，默认为 "groq"
+        model_provider: 模型提供商，"groq"、"deepseek" 或 "kimi"，默认为 "kimi"
+        deep_thinking: 是否启用深度思考模式
     """
     vector_db = store_manager.get_store(session_id)
     
@@ -106,7 +107,9 @@ async def process_chat_stream(user_query: str, session_id: str, model_provider: 
     
     # 1. 检索 RAG (使用重写后的 Query)
     # 使用 asyncio.to_thread 避免阻塞主线程
-    relevant_docs = await vector_db.search_hybrid(search_query, top_k=6)
+    # 深度思考模式：检索更多文档
+    top_k = 12 if deep_thinking else 6
+    relevant_docs = await vector_db.search_hybrid(search_query, top_k=top_k)
     rag_context = _build_context(relevant_docs)
     
     # 2. 获取全局上下文
@@ -116,9 +119,26 @@ async def process_chat_stream(user_query: str, session_id: str, model_provider: 
     
     # 3. 构造 Prompt (Context Priority)
     lang_instruction = "IMPORTANT: The user is asking in Chinese. You MUST reply in Simplified Chinese (简体中文)." if use_chinese else "Reply in English."
+    
+    # 深度思考模式的额外指令
+    deep_thinking_instruction = ""
+    if deep_thinking:
+        deep_thinking_instruction = """
+    
+    [DEEP THINKING MODE - 深度思考模式]
+    You are now in DEEP THINKING mode. Please:
+    1. **Analyze thoroughly**: Examine the code structure, design patterns, and logic flow in detail.
+    2. **Think step by step**: Break down complex problems into smaller parts.
+    3. **Consider edge cases**: Think about potential issues, error handling, and edge cases.
+    4. **Provide comprehensive answers**: Give detailed explanations, not just brief answers.
+    5. **Cross-reference**: Connect related code snippets and explain their relationships.
+    6. **Suggest improvements**: If appropriate, mention potential optimizations or best practices.
+    """
+    
     system_instruction = f"""
     You are a Senior GitHub Repository Analyst.
     {lang_instruction}
+    {deep_thinking_instruction}
     
     [Global Context - Repo Map]
     {file_tree}

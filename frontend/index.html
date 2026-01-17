@@ -51,19 +51,52 @@
         .header h1 { margin: 0; font-size: 1rem; font-weight: 600; display: flex; align-items: center; gap: 8px; color: var(--text-primary); }
         .badge { background: var(--primary-color); color: white; font-size: 0.7rem; padding: 3px 8px; border-radius: 12px; font-weight: 500; }
 
-        /* 主布局 */
+        /* 主布局 - 3个面板 */
         .main-container { display: flex; height: calc(100vh - 44px); width: 100%; }
-        .left-panel { width: 50%; min-width: 320px; background: var(--panel-bg); display: flex; flex-direction: column; border-right: 1px solid var(--border-color); }
-        .right-panel { flex: 1; min-width: 320px; background: var(--bg-color); display: flex; flex-direction: column; }
         
-        /* 目录树样式 */
+        /* 左侧面板 - 目录树（默认折叠） */
+        .file-tree-panel { 
+            width: 0;
+            min-width: 0;
+            max-width: 500px;
+            background: var(--panel-bg); 
+            display: flex; 
+            flex-direction: column; 
+            border-right: none; /* 折叠时不显示边框 */
+            overflow: hidden;
+            transition: width 0.3s ease, border-right 0.3s ease;
+        }
+        
+        .file-tree-panel.visible {
+            width: 300px;
+            min-width: 200px;
+            border-right: 1px solid var(--border-color); /* 展开时显示边框 */
+        }
+        
+        /* 中间面板 - 输入栏和分析报告 */
+        .middle-panel { 
+            width: 40%; 
+            min-width: 320px; 
+            background: var(--panel-bg); 
+            display: flex; 
+            flex-direction: column; 
+            border-right: 1px solid var(--border-color); 
+        }
+        
+        /* 右侧面板 - 聊天 */
+        .right-panel { 
+            flex: 1; 
+            min-width: 320px; 
+            background: var(--bg-color); 
+            display: flex; 
+            flex-direction: column; 
+        }
+        
+        /* 目录树容器样式 */
         .file-tree-container {
-            padding: 12px 24px;
-            border-bottom: 1px solid var(--border-color);
-            background: #f8fafc;
-            max-height: 300px;
+            padding: 12px 16px;
             overflow-y: auto;
-            flex-shrink: 0;
+            flex: 1;
             display: none !important; /* 默认隐藏，分析时显示 */
         }
         
@@ -72,10 +105,12 @@
         }
         
         .file-tree-title {
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 600;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            padding: 12px 0 8px 0;
+            border-bottom: 1px solid var(--border-color);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -128,13 +163,81 @@
             text-align: center;
             font-size: 14px;
         }
+        
+        /* 右键菜单样式 */
+        .context-menu {
+            position: fixed;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            padding: 4px 0;
+            z-index: 1000;
+            min-width: 180px;
+            display: none;
+        }
+        
+        .context-menu-item {
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-primary);
+            transition: background 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .context-menu-item:hover {
+            background: #f1f5f9;
+        }
+        
+        .context-menu-item:active {
+            background: #e2e8f0;
+        }
 
         /* 拖拽条 */
-        .resizer { width: 10px; background: #f1f5f9; cursor: col-resize; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-left: 1px solid var(--border-color); border-right: 1px solid var(--border-color); transition: background 0.2s; }
+        .resizer { 
+            width: 10px; 
+            background: #f1f5f9; 
+            cursor: col-resize; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            flex-shrink: 0; 
+            border-left: 1px solid var(--border-color); 
+            border-right: 1px solid var(--border-color); 
+            transition: background 0.2s; 
+        }
         .resizer:hover, .resizer.active { background: #e2e8f0; }
         .resizer::after { content: "⋮"; color: #94a3b8; font-size: 14px; pointer-events: none; }
+        
+        /* Resizer1 默认隐藏，当目录树面板显示时显示 */
+        #resizer1 {
+            display: none;
+        }
+        .file-tree-panel.visible ~ #resizer1 {
+            display: flex;
+        }
 
-        .panel-content { padding: 24px; overflow-y: auto; flex: 1; }
+        .panel-content { 
+            padding: 24px; 
+            overflow-y: auto; 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            min-height: 0; /* 允许 flex 子元素收缩 */
+        }
+        
+        /* 兼容旧的 left-panel 类名 */
+        .left-panel {
+            width: 40%;
+            min-width: 320px;
+            background: var(--panel-bg);
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border-color);
+        }
 
         /* 输入栏 */
         .input-bar { 
@@ -263,14 +366,132 @@
             font-size: 12px;
         }
         /* ==================================== */
+        
+        /* === [新增] 深度思考选项样式 === */
+        .deep-thinking-toggle {
+            position: absolute;
+            bottom: 12px;
+            left: 110px; /* 在模型选择器右侧 */
+            font-size: 11px;
+            z-index: 10;
+        }
+        
+        .deep-thinking-toggle input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: var(--primary-color);
+            margin: 0;
+        }
+        
+        .deep-thinking-toggle label {
+            user-select: none;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: color 0.2s;
+        }
+        
+        .deep-thinking-toggle:hover label {
+            color: var(--text-primary);
+        }
+        
+        .deep-thinking-toggle input[type="checkbox"]:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        
+        .deep-thinking-toggle input[type="checkbox"]:disabled + label {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        /* ==================================== */
 
         /* 日志区域 */
+        .logs-wrapper {
+            margin-bottom: 20px;
+            flex-shrink: 0;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--panel-bg);
+            overflow: hidden;
+        }
+        
+        .logs-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            background: #f1f5f9;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+        }
+        
+        .logs-header:hover {
+            background: #e2e8f0;
+        }
+        
+        .logs-header-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .logs-toggle-icon {
+            font-size: 12px;
+            color: var(--text-secondary);
+            transition: transform 0.3s;
+        }
+        
+        .logs-wrapper.collapsed .logs-toggle-icon {
+            transform: rotate(-90deg);
+        }
+        
         .logs-area {
-            background: #f1f5f9; color: #475569; padding: 16px; border-radius: 8px; height: 140px; overflow-y: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 15px; margin-bottom: 20px; line-height: 1.6; flex-shrink: 0; border: 1px solid var(--border-color);
+            background: #f1f5f9; 
+            color: #475569; 
+            padding: 16px; 
+            height: 140px; 
+            overflow-y: auto; 
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; 
+            font-size: 15px; 
+            line-height: 1.6; 
+            transition: height 0.3s ease, padding 0.3s ease;
+        }
+        
+        .logs-wrapper.collapsed .logs-area {
+            height: 0;
+            padding: 0 16px;
+            overflow: hidden;
         }
 
         /* === Markdown 内容样式增强 (表格与结构) === */
-        .markdown-body { font-size: 16px; line-height: 1.75; color: var(--text-primary); }
+        .markdown-body { 
+            font-size: 16px; 
+            line-height: 1.75; 
+            color: var(--text-primary); 
+            flex: 1; 
+            min-width: 0; /* 允许 flex 子元素收缩 */
+            overflow-y: auto; /* 允许内容滚动 */
+        }
+        
+        /* 消息气泡内的 markdown-body 特殊处理 */
+        .msg .markdown-body {
+            flex: none !important; /* 移除 flex，避免被限制 */
+            min-width: auto !important; /* 恢复默认 */
+            overflow: visible !important; /* 完全移除滚动，允许内容自然展开 */
+            overflow-y: visible !important; /* 确保Y轴不滚动 */
+            overflow-x: visible !important; /* 确保X轴不滚动 */
+            width: 100% !important; /* 占满消息气泡宽度 */
+            max-width: 100% !important; /* 确保不超出容器 */
+            height: auto !important; /* 高度自动，完全展开 */
+            max-height: none !important; /* 移除最大高度限制 */
+        }
         .markdown-body h1, .markdown-body h2, .markdown-body h3 { margin-top: 1.5em; color: #1e293b; font-weight: 600; }
         
         /* 列表样式 */
@@ -348,12 +569,19 @@
         .chat-container { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 24px; }
         
         .msg { 
-            max-width: 85%; 
-            padding: 14px 20px; 
+            max-width: 90%; /* 增加最大宽度，让内容有更多展示空间 */
+            min-width: 200px; /* 设置最小宽度，避免太窄 */
+            padding: 16px 20px; /* 增加内边距，让内容更舒适 */
             border-radius: 16px; 
-            font-size: 16px; position: relative; word-wrap: break-word; 
+            font-size: 16px; 
+            position: relative; 
+            word-wrap: break-word; 
+            overflow-wrap: break-word; /* 确保长单词可以换行 */
             box-shadow: 0 2px 4px rgba(0,0,0,0.02);
             line-height: 1.6;
+            display: block; /* 改为 block，让内容自然展开 */
+            overflow: visible; /* 确保消息气泡本身不出现滚动条 */
+            height: auto; /* 高度自动适应内容 */
         }
         
         .msg.user { 
@@ -369,6 +597,7 @@
             background: var(--chat-ai-bg);
             border: 1px solid var(--border-color);
             border-bottom-left-radius: 4px;
+            max-width: 95%; /* AI消息可以更宽，因为通常内容更多 */
         }
 
         .source-tag { font-size: 13px; color: var(--text-secondary); margin-top: 12px; padding-top: 12px; border-top: 1px solid #f1f5f9; }
@@ -415,7 +644,7 @@
 
         @media (max-width: 768px) {
             .main-container { flex-direction: column; overflow-y: auto; }
-            .left-panel, .right-panel { width: 100% !important; height: auto; min-height: 50vh; }
+            .file-tree-panel, .middle-panel, .right-panel { width: 100% !important; height: auto; min-height: 50vh; }
             .resizer { display: none; }
             .panel-content { min-height: 300px; }
             body { overflow: auto; }
@@ -432,7 +661,26 @@
 
 <div class="main-container" id="mainContainer">
     
-    <div class="left-panel" id="leftPanel">
+    <!-- 左侧面板：目录树 -->
+    <div class="file-tree-panel" id="fileTreePanel">
+        <div class="file-tree-container" id="fileTreeContainer">
+            <div class="file-tree-title">📂 Repository Structure</div>
+            <div class="file-tree" id="fileTree"></div>
+        </div>
+    </div>
+    
+    <!-- 右键菜单 -->
+    <div class="context-menu" id="contextMenu">
+        <div class="context-menu-item" id="copyPathItem">
+            <span>📋</span>
+            <span>复制当前节点路径</span>
+        </div>
+    </div>
+
+    <div class="resizer" id="resizer1"></div>
+
+    <!-- 中间面板：输入栏和分析报告 -->
+    <div class="middle-panel" id="middlePanel">
         <div class="input-bar">
             <form onsubmit="return false;" style="display: contents;">
                 <input type="text" id="repoUrl" value="https://github.com/guinanlin/rongguan" 
@@ -451,14 +699,18 @@
             </form>
         </div>
         
-        <div class="file-tree-container" id="fileTreeContainer">
-            <div class="file-tree-title">📂 Repository Structure</div>
-            <div class="file-tree" id="fileTree"></div>
-        </div>
-        
         <div class="panel-content">
-            <div class="logs-area" id="logs">
-                <div>[System] Ready to enter...</div>
+            <div class="logs-wrapper" id="logsWrapper">
+                <div class="logs-header" onclick="toggleLogs()">
+                    <div class="logs-header-title">
+                        <span>📋</span>
+                        <span>分析日志</span>
+                    </div>
+                    <span class="logs-toggle-icon">▼</span>
+                </div>
+                <div class="logs-area" id="logs">
+                    <div>[System] Ready to enter...</div>
+                </div>
             </div>
             <div class="markdown-body" id="report">
                 <div style="text-align: center; color: #94a3b8; margin-top: 80px; font-size: 18px;">
@@ -468,8 +720,9 @@
         </div>
     </div>
 
-    <div class="resizer" id="resizer"></div>
+    <div class="resizer" id="resizer2"></div>
 
+    <!-- 右侧面板：聊天 -->
     <div class="right-panel" id="rightPanel">
         <div class="chat-container" id="chat-history">
             <div class="msg ai">👋 Hi! Once the analysis is done, ask me anything about the code.</div>
@@ -483,6 +736,10 @@
                     <option value="groq">Groq</option>
                     <option value="deepseek">DeepSeek</option>
                 </select>
+            </div>
+            <div class="deep-thinking-toggle" id="deepThinkingToggle" style="display: flex; align-items: center; gap: 6px; margin-left: 8px;">
+                <input type="checkbox" id="deepThinkingCheckbox" disabled>
+                <label for="deepThinkingCheckbox" style="font-size: 0.85rem; color: var(--text-secondary); cursor: pointer;">深度思考</label>
             </div>
         </div>
     </div>
@@ -545,28 +802,78 @@
     }
     const SESSION_ID = getOrCreateSessionId();
     document.getElementById('sessionIdDisplay').innerText = SESSION_ID.substr(-6);
+    
+    // 右键菜单：复制路径功能
+    document.getElementById('copyPathItem').addEventListener('click', function() {
+        const contextMenu = document.getElementById('contextMenu');
+        const path = contextMenu.dataset.path;
+        if (path) {
+            copyPathToClipboard(path);
+        }
+    });
 
-    // 拖拽逻辑
-    const resizer = document.getElementById('resizer');
-    const leftPanel = document.getElementById('leftPanel');
+    // 拖拽逻辑 - 支持两个 resizer
+    const resizer1 = document.getElementById('resizer1');
+    const resizer2 = document.getElementById('resizer2');
+    const fileTreePanel = document.getElementById('fileTreePanel');
+    const middlePanel = document.getElementById('middlePanel');
     const container = document.getElementById('mainContainer');
-    let isResizing = false;
+    let activeResizer = null;
+    let startX = 0;
+    let startLeftWidth = 0;
+    let startMiddleWidth = 0;
 
-    resizer.addEventListener('mousedown', (e) => {
-        isResizing = true;
-        resizer.classList.add('active');
+    // Resizer1: 调整目录树和中间面板
+    resizer1.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        activeResizer = resizer1;
+        startX = e.clientX;
+        startLeftWidth = fileTreePanel.offsetWidth;
+        resizer1.classList.add('active');
         document.body.style.cursor = 'col-resize';
         document.body.style.userSelect = 'none';
     });
-    document.addEventListener('mousemove', (e) => {
-        if (!isResizing) return;
-        const newLeftWidth = (e.clientX / container.offsetWidth) * 100;
-        if (newLeftWidth > 20 && newLeftWidth < 80) leftPanel.style.width = `${newLeftWidth}%`;
+
+    // Resizer2: 调整中间面板和右侧面板
+    resizer2.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        activeResizer = resizer2;
+        startX = e.clientX;
+        startMiddleWidth = middlePanel.offsetWidth;
+        resizer2.classList.add('active');
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
     });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!activeResizer) return;
+        
+        const deltaX = e.clientX - startX;
+        const containerWidth = container.offsetWidth;
+        
+        if (activeResizer === resizer1) {
+            // 调整目录树宽度
+            const newLeftWidth = startLeftWidth + deltaX;
+            const minWidth = 200;
+            const maxWidth = 500;
+            if (newLeftWidth >= minWidth && newLeftWidth <= maxWidth) {
+                fileTreePanel.style.width = `${newLeftWidth}px`;
+            }
+        } else if (activeResizer === resizer2) {
+            // 调整中间面板宽度
+            const newMiddleWidth = startMiddleWidth + deltaX;
+            const minWidth = 320;
+            const maxWidth = containerWidth * 0.7; // 最多占70%
+            if (newMiddleWidth >= minWidth && newMiddleWidth <= maxWidth) {
+                middlePanel.style.width = `${newMiddleWidth}px`;
+            }
+        }
+    });
+
     document.addEventListener('mouseup', () => {
-        if (isResizing) {
-            isResizing = false;
-            resizer.classList.remove('active');
+        if (activeResizer) {
+            activeResizer.classList.remove('active');
+            activeResizer = null;
             document.body.style.cursor = '';
             document.body.style.userSelect = '';
         }
@@ -657,7 +964,7 @@
     }
 
     // 渲染目录树
-    function renderFileTree(tree, container, level = 0) {
+    function renderFileTree(tree, container, level = 0, parentPath = '') {
         if (!tree || typeof tree !== 'object') {
             console.warn('Invalid tree data:', tree);
             return;
@@ -681,15 +988,18 @@
             const isDirectory = item.type === 'directory';
             const hasChildren = isDirectory && item.children && typeof item.children === 'object' && Object.keys(item.children).length > 0;
             
+            // 计算当前节点的完整路径
+            const currentPath = parentPath ? `${parentPath}/${key}` : key;
+            
             const itemDiv = document.createElement('div');
             itemDiv.className = `file-tree-item ${isDirectory ? 'directory' : 'file'}`;
-            if (isDirectory && hasChildren) {
-                itemDiv.classList.add('expanded'); // 默认展开（仅当有子项时）
-            }
+            itemDiv.dataset.path = currentPath; // 存储路径数据
+            // 默认折叠，不自动展开
             
             const icon = document.createElement('span');
             icon.className = 'file-tree-icon';
-            icon.textContent = isDirectory ? (hasChildren ? '📂' : '📁') : '📄';
+            // 默认折叠状态，显示关闭的文件夹图标
+            icon.textContent = isDirectory ? '📁' : '📄';
             
             const name = document.createElement('span');
             name.textContent = key;
@@ -700,7 +1010,7 @@
             if (hasChildren) {
                 const childrenDiv = document.createElement('div');
                 childrenDiv.className = 'file-tree-children';
-                renderFileTree(item.children, childrenDiv, level + 1);
+                renderFileTree(item.children, childrenDiv, level + 1, currentPath);
                 itemDiv.appendChild(childrenDiv);
                 
                 // 点击切换展开/折叠
@@ -715,8 +1025,79 @@
                 itemDiv.style.opacity = '0.7';
             }
             
+            // 右键菜单事件
+            itemDiv.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                showContextMenu(e.clientX, e.clientY, currentPath);
+            });
+            
             container.appendChild(itemDiv);
         }
+    }
+    
+    // 显示右键菜单
+    function showContextMenu(x, y, path) {
+        const contextMenu = document.getElementById('contextMenu');
+        contextMenu.style.display = 'block';
+        contextMenu.style.left = `${x}px`;
+        contextMenu.style.top = `${y}px`;
+        contextMenu.dataset.path = path; // 存储当前选中的路径
+        
+        // 点击其他地方关闭菜单
+        const closeMenu = (e) => {
+            if (!contextMenu.contains(e.target)) {
+                contextMenu.style.display = 'none';
+                document.removeEventListener('click', closeMenu);
+            }
+        };
+        
+        // 延迟添加事件监听，避免立即触发
+        setTimeout(() => {
+            document.addEventListener('click', closeMenu);
+        }, 100);
+    }
+    
+    // 复制路径到剪贴板
+    function copyPathToClipboard(path) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(path).then(() => {
+                // 显示复制成功提示
+                const copyItem = document.getElementById('copyPathItem');
+                const originalText = copyItem.innerHTML;
+                copyItem.innerHTML = '<span>✅</span><span>已复制</span>';
+                setTimeout(() => {
+                    copyItem.innerHTML = originalText;
+                }, 1500);
+            }).catch(err => {
+                console.error('复制失败:', err);
+                alert('复制失败，请手动复制：' + path);
+            });
+        } else {
+            // 降级方案：使用传统方法
+            const textArea = document.createElement('textarea');
+            textArea.value = path;
+            textArea.style.position = 'fixed';
+            textArea.style.opacity = '0';
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                const copyItem = document.getElementById('copyPathItem');
+                const originalText = copyItem.innerHTML;
+                copyItem.innerHTML = '<span>✅</span><span>已复制</span>';
+                setTimeout(() => {
+                    copyItem.innerHTML = originalText;
+                }, 1500);
+            } catch (err) {
+                console.error('复制失败:', err);
+                alert('复制失败，请手动复制：' + path);
+            }
+            document.body.removeChild(textArea);
+        }
+        
+        // 关闭菜单
+        document.getElementById('contextMenu').style.display = 'none';
     }
     
     // 获取并显示目录树
@@ -732,6 +1113,11 @@
         // 显示加载状态
         treeDiv.innerHTML = '<div style="color: var(--text-secondary); font-size: 12px;">⏳ 加载目录树...</div>';
         treeContainer.classList.add('visible');
+        // 显示目录树面板
+        const fileTreePanel = document.getElementById('fileTreePanel');
+        if (fileTreePanel) {
+            fileTreePanel.classList.add('visible');
+        }
         console.log('Loading file tree for URL:', url);
         
         try {
@@ -814,8 +1200,8 @@
             if (data.step === 'report_chunk') {
                 fullReportMarkdown += data.chunk;
                 reportDiv.innerHTML = marked.parse(fullReportMarkdown);
-                const panelContent = reportDiv.parentElement;
-                panelContent.scrollTop = panelContent.scrollHeight;
+                // 直接滚动报告区域（现在 reportDiv 有自己的滚动区域）
+                reportDiv.scrollTop = reportDiv.scrollHeight;
             } else if (data.step === 'finish') {
                 logAppend(`✅ ${data.message}`, "#15803d"); 
                 eventSource.close();
@@ -854,12 +1240,15 @@
         
         const btnChat = document.getElementById('btn-chat');
         const modelSelect = document.getElementById('modelSelect');
+        const deepThinkingCheckbox = document.getElementById('deepThinkingCheckbox');
         input.disabled = true;
         btnChat.disabled = true;
         modelSelect.disabled = true;
+        deepThinkingCheckbox.disabled = true;
         
-        // 获取选中的模型
+        // 获取选中的模型和深度思考选项
         const selectedModel = modelSelect.value;
+        const deepThinking = deepThinkingCheckbox.checked;
         
         let msgId;
         setTimeout(() => {
@@ -870,7 +1259,12 @@
             const res = await fetch(`${API_BASE}/chat`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ query: query, session_id: SESSION_ID, model: selectedModel })
+                body: JSON.stringify({ 
+                    query: query, 
+                    session_id: SESSION_ID, 
+                    model: selectedModel,
+                    deep_thinking: deepThinking
+                })
             });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             
@@ -901,6 +1295,7 @@
             input.disabled = false;
             btnChat.disabled = false;
             modelSelect.disabled = false;
+            deepThinkingCheckbox.disabled = false;
             input.focus();
         }
     }
@@ -942,6 +1337,7 @@
         document.getElementById('chatInput').disabled = !enabled;
         document.getElementById('btn-chat').disabled = !enabled;
         document.getElementById('modelSelect').disabled = !enabled;
+        document.getElementById('deepThinkingCheckbox').disabled = !enabled;
         document.getElementById('chatInput').placeholder = enabled ? "请输入你的问题..." : "等待分析完成...";
     }
 
@@ -961,6 +1357,14 @@
     }
 
     function handleKeyPress(e) { if (e.key === 'Enter') sendChat(); }
+    
+    // 日志区域折叠/展开功能
+    function toggleLogs() {
+        const logsWrapper = document.getElementById('logsWrapper');
+        if (logsWrapper) {
+            logsWrapper.classList.toggle('collapsed');
+        }
+    }
 </script>
 
 </body>

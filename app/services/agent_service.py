@@ -176,9 +176,14 @@ async def agent_stream(repo_url: str, session_id: str, language: str = "en"):
 
         yield json.dumps({"step": "fetched", "message": f"📦 Found {len(file_list)} files. Building Repo Map (AST Parsing)..."})        
         
-        file_tree_str = await generate_repo_map(repo_url, file_list, limit=15)
+        # === 获取分析配置 ===
+        analysis_config = settings.get_analysis_config()
+        repo_map_limit = analysis_config["repo_map_limit"]
+        MAX_ROUNDS = analysis_config["max_rounds"]
+        files_per_round = analysis_config["files_per_round"]
         
-        MAX_ROUNDS = 3
+        file_tree_str = await generate_repo_map(repo_url, file_list, limit=repo_map_limit)
+        
         visited_files = set()
         context_summary = ""
         readme_file = next((f for f in file_list if f.lower().endswith("readme.md")), None)
@@ -201,8 +206,8 @@ async def agent_stream(repo_url: str, session_id: str, language: str = "en"):
             {context_summary}
             
             [Task]
-            Select 1-3 MOST CRITICAL files to read next to understand the core logic.
-            Focus on files that seem to contain main logic based on the Repo Map symbols.
+            Select {files_per_round} MOST CRITICAL files to read next to understand the core logic.
+            Focus on files that seem to contain main logic, tests, and utility modules based on the Repo Map symbols.
             
             [Constraint]
             Return ONLY a raw JSON list of strings. No markdown.
